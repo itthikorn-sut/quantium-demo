@@ -1,4 +1,5 @@
 # k6 Load Tests
+<!-- CI trigger -->
 
 ## What it tests
 
