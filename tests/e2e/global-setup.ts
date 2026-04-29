@@ -2,7 +2,29 @@ import { chromium, type FullConfig } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
 
+const AUTH_FILE = path.join(process.cwd(), 'tests', '.auth', 'user.json');
+const MAX_AGE_MS = 60 * 60 * 1000; // 1 hour
+
+function isAuthFresh(): boolean {
+  try {
+    const stat = fs.statSync(AUTH_FILE);
+    const age = Date.now() - stat.mtimeMs;
+    if (age > MAX_AGE_MS) return false;
+    // Verify the file has meaningful content (cookies present)
+    const content = JSON.parse(fs.readFileSync(AUTH_FILE, 'utf-8'));
+    return Array.isArray(content.cookies) && content.cookies.length > 0;
+  } catch {
+    return false;
+  }
+}
+
 async function globalSetup(config: FullConfig) {
+  // Skip login if we already have a recent, valid auth state
+  if (isAuthFresh()) {
+    console.log('[global-setup] Using cached auth state (< 1 hour old)');
+    return;
+  }
+
   const project = config.projects[0];
   const baseURL = String(project.use.baseURL || process.env.BASE_URL || 'https://www.quantiumcore.com');
   const email = process.env.TEST_EMAIL;
@@ -27,7 +49,7 @@ async function globalSetup(config: FullConfig) {
 
   const authDir = path.join(process.cwd(), 'tests', '.auth');
   fs.mkdirSync(authDir, { recursive: true });
-  await page.context().storageState({ path: path.join(authDir, 'user.json') });
+  await page.context().storageState({ path: AUTH_FILE });
   await browser.close();
 }
 

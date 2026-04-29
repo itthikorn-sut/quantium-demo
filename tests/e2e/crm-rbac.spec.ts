@@ -1,44 +1,61 @@
 import { test, expect } from '@playwright/test';
-import { expectBodyToContain, expectNoCrashText, gotoModule } from '../support/ui';
+import { CrmPage } from '../pages/CrmPage';
 
 test.describe('CRM and RBAC', () => {
-  test('CRM-HAPPY-001 - contacts list renders for guest user', async ({ page }) => {
-    await gotoModule(page, '/crm/contact');
+  let crmPage: CrmPage;
 
-    await expectBodyToContain(page, /contacts/i);
-    await expectBodyToContain(page, /new contact/i);
+  test.beforeEach(async ({ page }) => {
+    crmPage = new CrmPage(page);
   });
 
-  test('CRM-HAPPY-002 - contact filters are visible', async ({ page }) => {
-    await gotoModule(page, '/crm/contact');
-
-    await expectBodyToContain(page, /any title/i);
-    await expectBodyToContain(page, /any primary entity/i);
+  // ── Contacts Page ──────────────────────────────────────────
+  test('CRM-HAPPY-001 — contacts page renders heading', async () => {
+    await crmPage.goto('contact');
+    await expect(crmPage.contactsHeading()).toBeVisible({ timeout: 15000 });
   });
 
-  test('CRM-EDGE-001 - CRM entity route shows explicit unauthorized state', async ({ page }) => {
-    await gotoModule(page, '/crm/entity');
-
-    await expectBodyToContain(page, /unauthorized/i);
-    await expectBodyToContain(page, /contact your administrator/i);
+  test('CRM-HAPPY-002 — "New contact" button is visible', async () => {
+    await crmPage.goto('contact');
+    await expect(crmPage.newContactButton()).toBeVisible();
   });
 
-  test('CRM-EDGE-002 - contact view supports list display mode', async ({ page }) => {
-    await gotoModule(page, '/crm/contact');
-
-    await expectBodyToContain(page, /view:/i);
+  test('CRM-HAPPY-003 — contact filter dropdowns are present', async () => {
+    await crmPage.goto('contact');
+    await expect(crmPage.filterDropdown('any title')).toBeVisible();
+    await expect(crmPage.filterDropdown('any primary entity')).toBeVisible();
   });
 
-  test('CRM-NEGATIVE-001 - unauthorized route does not look like a blank page', async ({ page }) => {
-    await gotoModule(page, '/crm/entity');
-
-    await expect(page.locator('body')).not.toHaveText(/^\s*$/);
+  test('CRM-HAPPY-004 — view mode toggle is present', async () => {
+    await crmPage.goto('contact');
+    await expect(crmPage.viewModeToggle()).toBeVisible();
   });
 
-  test('CRM-NEGATIVE-002 - contacts page does not expose server crash text', async ({ page }) => {
-    await gotoModule(page, '/crm/contact');
+  test('CRM-HAPPY-005 — contact list renders data (cards or table rows)', async () => {
+    await crmPage.goto('contact');
+    const contactItems = crmPage.contactListItems();
+    await expect(contactItems.first()).toBeVisible({ timeout: 15000 });
+  });
 
-    await expectNoCrashText(page);
+  // ── CRM Entity (Unauthorized) ──────────────────────────────
+  test('CRM-EDGE-001 — CRM entity route shows "Unauthorized" heading', async () => {
+    await crmPage.goto('entity');
+    await expect(crmPage.unauthorizedHeading()).toBeVisible({ timeout: 15000 });
+  });
+
+  test('CRM-EDGE-002 — CRM entity shows administrator guidance', async () => {
+    await crmPage.goto('entity');
+    await expect(crmPage.adminGuidanceText()).toBeVisible();
+  });
+
+  // ── Negative ───────────────────────────────────────────────
+  test('CRM-NEGATIVE-001 — unauthorized route is not a blank page', async ({ page }) => {
+    await crmPage.goto('entity');
+    const bodyText = await page.locator('body').innerText();
+    expect(bodyText.trim().length).toBeGreaterThan(10);
+  });
+
+  test('CRM-NEGATIVE-002 — contacts page does not show server error', async () => {
+    await crmPage.goto('contact');
+    await expect(crmPage.serverErrorText()).not.toBeVisible({ timeout: 15000 });
   });
 });
-

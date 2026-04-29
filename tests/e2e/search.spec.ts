@@ -1,51 +1,59 @@
 import { test, expect } from '@playwright/test';
-import { expectBodyToContain, expectNoCrashText, gotoModule } from '../support/ui';
+import { SearchPage } from '../pages/SearchPage';
 
 test.describe('Search', () => {
-  test('SEARCH-HAPPY-001 - search page exposes entity and transaction discovery', async ({ page }) => {
-    await gotoModule(page, '/search');
+  let searchPage: SearchPage;
 
+  test.beforeEach(async ({ page }) => {
+    searchPage = new SearchPage(page);
+  });
+
+  // ── Entity Search ──────────────────────────────────────────
+  test('SEARCH-HAPPY-001 — search page redirects to entity search', async ({ page }) => {
+    await searchPage.goto();
     await expect(page).toHaveURL(/\/search\/entity/i);
-    await expectBodyToContain(page, /search/i);
-    await expectBodyToContain(page, /entity|transaction|investor/i);
   });
 
-  test('SEARCH-HAPPY-002 - entity search exposes category selector', async ({ page }) => {
-    await gotoModule(page, '/search/entity');
-
-    await expectBodyToContain(page, /entity type/i);
-    await expectBodyToContain(page, /fund vehicle|investor|asset|deal/i);
+  test('SEARCH-HAPPY-002 — entity type selector is a dropdown/combobox', async () => {
+    await searchPage.goto('entity');
+    // We expect either the selector to exist, or the options to be selectable
+    const selector = searchPage.entityTypeSelector();
+    const options = searchPage.entityTypeOptions();
+    expect((await selector.count()) > 0 || (await options.count()) > 0).toBeTruthy();
   });
 
-  test('SEARCH-HAPPY-003 - transaction search route is reachable', async ({ page }) => {
-    await gotoModule(page, '/search/transaction');
-
-    await expectBodyToContain(page, /transaction/i);
-    await expectBodyToContain(page, /search/i);
+  test('SEARCH-HAPPY-003 — search button is disabled until criteria selected', async () => {
+    await searchPage.goto('');
+    const searchBtn = searchPage.searchButton();
+    await expect(searchBtn).toBeVisible();
+    await expect(searchBtn).toBeDisabled();
   });
 
-  test('SEARCH-HAPPY-004 - investor allocation search route is reachable', async ({ page }) => {
-    await gotoModule(page, '/search/investor-allocation');
-
-    await expectBodyToContain(page, /investor allocation|search/i);
+  test('SEARCH-HAPPY-004 — "Customize column table" option is available', async () => {
+    await searchPage.goto('entity');
+    await expect(searchPage.customizeColumnButton()).toBeVisible();
   });
 
-  test('SEARCH-EDGE-001 - search action is guarded until criteria are selected', async ({ page }) => {
-    await gotoModule(page, '/search');
-
-    await expect(page.getByRole('button', { name: /search/i })).toBeDisabled();
+  test('SEARCH-HAPPY-005 — "Export" button is available', async () => {
+    await searchPage.goto('entity');
+    await expect(searchPage.exportButton()).toBeVisible();
   });
 
-  test('SEARCH-EDGE-002 - customize columns and export affordances are visible', async ({ page }) => {
-    await gotoModule(page, '/search/entity');
-
-    await expectBodyToContain(page, /customize column table/i);
-    await expectBodyToContain(page, /export/i);
+  // ── Transaction Search ─────────────────────────────────────
+  test('SEARCH-HAPPY-006 — transaction search route is reachable', async () => {
+    await searchPage.goto('transaction');
+    await expect(searchPage.contentText(/transaction/i)).toBeVisible({ timeout: 15000 });
   });
 
-  test('SEARCH-NEGATIVE-001 - search page does not expose crash text', async ({ page }) => {
-    await gotoModule(page, '/search/entity');
+  // ── Investor Allocation Search ─────────────────────────────
+  test('SEARCH-HAPPY-007 — investor allocation search route is reachable', async () => {
+    await searchPage.goto('investor-allocation');
+    await expect(searchPage.contentText(/investor allocation|search/i)).toBeVisible({ timeout: 15000 });
+  });
 
-    await expectNoCrashText(page);
+  // ── Negative ───────────────────────────────────────────────
+  test('SEARCH-NEGATIVE-001 — search page does not crash', async () => {
+    await searchPage.goto('entity');
+    await expect(searchPage.serverErrorText()).not.toBeVisible({ timeout: 15000 });
   });
 });

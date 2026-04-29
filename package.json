@@ -5,7 +5,8 @@
   "description": "QA Lead interview showcase for Quantium CORE with Playwright E2E and API coverage.",
   "scripts": {
     "test": "playwright test",
-    "test:e2e": "playwright test tests/e2e --headed",
+    "test:e2e": "playwright test tests/e2e",
+    "test:e2e:headed": "playwright test tests/e2e --headed",
     "test:api": "playwright test tests/api",
     "test:all": "playwright test",
     "test:smoke": "playwright test tests/e2e/dashboard.spec.ts tests/e2e/capital-call.spec.ts",

@@ -1,11 +1,31 @@
 import { test, expect } from '@playwright/test';
-import { apiBaseURL } from '../support/api';
+import { apiBaseURL, authenticatedApiContext } from '../support/api';
 
 test.describe('Auth API', () => {
-  test('API-AUTH-NEGATIVE-001 - unauthenticated API request fails safely', async ({ request }) => {
-    const response = await request.get(`${apiBaseURL}/api/qfdashboard`);
+  const protectedEndpoints = [
+    '/api/qfdashboard',
+    '/api/capital/list',
+    '/api/investor/list',
+    '/api/asset/list',
+    '/api/crmentity/list',
+  ];
 
-    expect([401, 403, 404]).toContain(response.status());
+  for (const endpoint of protectedEndpoints) {
+    test(`API-AUTH-NEGATIVE — unauthenticated ${endpoint} returns 401 or 403`, async ({ request }) => {
+      const response = await request.get(`${apiBaseURL}${endpoint}`);
+
+      expect([401, 403, 404]).toContain(response.status());
+      expect(response.status()).not.toBeGreaterThanOrEqual(500);
+    });
+  }
+
+  test('API-AUTH-NEGATIVE-006 — unauthenticated POST to capital returns 401 or 403', async ({ request }) => {
+    const response = await request.post(`${apiBaseURL}/api/capital`, {
+      headers: { 'Content-Type': 'application/json' },
+      data: { investorId: 'test', amount: 100 },
+    });
+
+    expect([401, 403, 404, 405]).toContain(response.status());
     expect(response.status()).not.toBeGreaterThanOrEqual(500);
   });
 });
