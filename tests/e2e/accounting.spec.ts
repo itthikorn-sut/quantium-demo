@@ -57,5 +57,15 @@ test.describe('Accounting', () => {
 
     await expectNoCrashText(page);
   });
+
+  test('ACC-HAPPY-005 - banking module loads without crashing', async ({ page }) => {
+    await gotoModule(page, '/banking');
+    await expectNoCrashText(page);
+  });
+
+  test('ACC-HAPPY-006 - journal module loads without crashing', async ({ page }) => {
+    await gotoModule(page, '/journal');
+    await expectNoCrashText(page);
+  });
 });
 

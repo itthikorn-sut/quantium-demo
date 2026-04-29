@@ -55,4 +55,14 @@ test.describe('Investor Entities', () => {
 
     await expectNoCrashText(page);
   });
+
+  test('ENT-HAPPY-001 - asset module loads without crashing', async ({ page }) => {
+    await gotoModule(page, '/asset');
+    await expectNoCrashText(page);
+  });
+
+  test('ENT-HAPPY-002 - fund vehicle module loads without crashing', async ({ page }) => {
+    await gotoModule(page, '/fundvehicle');
+    await expectNoCrashText(page);
+  });
 });

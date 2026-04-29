@@ -40,5 +40,20 @@ test.describe('Deal Transactions', () => {
   test('DEAL-NEGATIVE-002 - guest view does not show unauthorized state', async ({ page }) => {
     await expect(page.locator('body')).not.toContainText(/unauthorized|access denied/i);
   });
+
+  test('TXN-HAPPY-001 - fund operation module loads without crashing', async ({ page }) => {
+    await gotoModule(page, '/fund-operation');
+    await expectNoCrashText(page);
+  });
+
+  test('TXN-HAPPY-002 - fund investment module loads without crashing', async ({ page }) => {
+    await gotoModule(page, '/fund-investment');
+    await expectNoCrashText(page);
+  });
+
+  test('TXN-HAPPY-003 - spv transfer module loads without crashing', async ({ page }) => {
+    await gotoModule(page, '/spv-transfer');
+    await expectNoCrashText(page);
+  });
 });
 
