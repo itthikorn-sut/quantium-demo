@@ -1,0 +1,145 @@
+name: QA Pipeline
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      run_k6:
+        description: 'Run k6 load tests (non-prod only)'
+        type: boolean
+        default: false
+      k6_target_url:
+        description: 'k6 target URL (MUST be staging, never production)'
+        type: string
+        default: 'https://staging.quantiumcore.com'
+
+jobs:
+  # ── Job 1: Playwright E2E + API Tests ─────────────────────────
+  e2e-tests:
+    name: E2E & API Tests (Playwright)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run E2E tests
+        env:
+          BASE_URL: https://www.quantiumcore.com
+          TEST_EMAIL: ${{ secrets.QA_TEST_EMAIL }}
+          TEST_PASSWORD: ${{ secrets.QA_TEST_PASSWORD }}
+        run: npx playwright test tests/e2e --ignore=tests/e2e/bugs --reporter=html,list,json
+
+      - name: Run API tests
+        env:
+          BASE_URL: https://www.quantiumcore.com
+          TEST_EMAIL: ${{ secrets.QA_TEST_EMAIL }}
+          TEST_PASSWORD: ${{ secrets.QA_TEST_PASSWORD }}
+        run: npx playwright test tests/api --reporter=list,json
+        continue-on-error: false  # API test failures block merge
+
+      - name: Run bug reproduction tests (expected failures documented)
+        env:
+          BASE_URL: https://www.quantiumcore.com
+          TEST_EMAIL: ${{ secrets.QA_TEST_EMAIL }}
+          TEST_PASSWORD: ${{ secrets.QA_TEST_PASSWORD }}
+        run: npx playwright test tests/e2e/bugs --reporter=list,json
+        continue-on-error: true  # Known bugs — failure is expected; logged not blocking
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
+      - name: Upload test results JSON
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: test-results.json
+          retention-days: 7
+
+  # ── Job 2: AI PR Review ──────────────────────────────────────
+  ai-pr-review:
+    name: AI QA Review (Claude)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    permissions:
+      pull-requests: write  # needed to post PR comment
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # full history needed for git diff
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install anthropic
+
+      - name: Run AI QA review and post PR comment
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_EVENT_NUMBER: ${{ github.event.number }}
+          GITHUB_BASE_REF: ${{ github.base_ref }}
+        run: python ai-tools/mr_review_bot.py
+
+  # ── Job 3: k6 Load Tests (manual only, NEVER auto on PR) ─────
+  k6-load-test:
+    name: k6 Load Tests (manual trigger only)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.run_k6 == 'true'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install k6
+        run: |
+          sudo gpg -k
+          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update && sudo apt-get install k6
+
+      - name: Validate target URL is not production
+        run: |
+          TARGET="${{ github.event.inputs.k6_target_url }}"
+          if echo "$TARGET" | grep -q "quantiumcore.com" && ! echo "$TARGET" | grep -q "staging"; then
+            echo "ERROR: k6 target URL appears to be production. Aborting."
+            exit 1
+          fi
+          echo "Target URL validated: $TARGET"
+
+      - name: Run k6 dashboard load test
+        env:
+          LOAD_TEST_BASE_URL: ${{ github.event.inputs.k6_target_url }}
+          LOAD_TEST_EMAIL: ${{ secrets.QA_LOAD_TEST_EMAIL }}
+          LOAD_TEST_PASSWORD: ${{ secrets.QA_LOAD_TEST_PASSWORD }}
+        run: k6 run k6/dashboard-load.js
+
+      - name: Upload k6 results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: k6-results
+          path: k6-summary.json
+          retention-days: 7

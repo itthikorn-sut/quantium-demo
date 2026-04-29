@@ -1,0 +1,20 @@
+{
+  "name": "quantium-qa-lead-showcase",
+  "version": "1.0.0",
+  "private": true,
+  "description": "QA Lead interview showcase for Quantium CORE with Playwright E2E and API coverage.",
+  "scripts": {
+    "test": "playwright test",
+    "test:e2e": "playwright test tests/e2e --headed",
+    "test:api": "playwright test tests/api",
+    "test:all": "playwright test",
+    "test:smoke": "playwright test tests/e2e/dashboard.spec.ts tests/e2e/capital-call.spec.ts",
+    "report": "playwright show-report playwright-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.44.0",
+    "@types/node": "^20.12.0",
+    "dotenv": "^16.4.5",
+    "typescript": "^5.4.0"
+  }
+}

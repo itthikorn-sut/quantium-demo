@@ -1,0 +1,29 @@
+- generic [ref=e3]:
+  - generic [ref=e4]:
+    - img "Quantium" [ref=e5]
+    - heading "Secure Sign-In" [level=3] [ref=e6]
+    - generic [ref=e7]:
+      - generic:
+        - list
+      - generic [ref=e8]:
+        - generic [ref=e9]: "@"
+        - textbox "Email" [ref=e10]
+      - generic [ref=e11]:
+        - generic [ref=e12]: 
+        - textbox "Password" [ref=e13]
+      - link "Forgot password?" [ref=e14] [cursor=pointer]:
+        - /url: /Account/ForgotPassword
+      - button "Sign in" [ref=e15] [cursor=pointer]
+      - generic [ref=e16]:
+        - separator [ref=e17]
+        - generic [ref=e18]: Or
+        - separator [ref=e19]
+      - generic [ref=e20]:
+        - img "Microsoft" [ref=e22]
+        - link "Sign in with Microsoft" [ref=e23] [cursor=pointer]:
+          - /url: /Account/Challenge?scheme=aad&returnUrl=%2Fconnect%2Fauthorize%2Fcallback%3Fclient_id%3Dquantium-web-client%26redirect_uri%3Dhttps%253A%252F%252Fwww.quantiumcore.com%252Fcallback%26response_type%3Dcode%26scope%3Dopenid%2520offline_access%2520role%2520company%2520profile%2520email%2520api1%26state%3D92096ff9a080468e9aa8088df5fa6e6f%26code_challenge%3DtMXPGwoRGSZn_HbbQnCjThiYSEyc9gqfxCCCYixd7cw%26code_challenge_method%3DS256%26response_mode%3Dquery
+    - link "Terms of Service" [ref=e24] [cursor=pointer]:
+      - /url: https://www.quantium.pe/terms-of-service
+  - generic [ref=e25]:
+    - heading "Next generation technology for the private markets" [level=1] [ref=e26]
+    - paragraph [ref=e27]: Modern fund and portfolio management software with investor servicing at its core.
