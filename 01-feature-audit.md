@@ -127,20 +127,23 @@ Regression test:
 
 - `tests/e2e/bugs/bug-004-permission-flash-on-login.spec.ts`
 
-### BUG-005 [Low] - IRR Type dropdown contains duplicate options
+### BUG-005 [Low] - Ambiguous IRR Type options (Fund vs Investor CF)
 
 Modules: Toolkits > IRR simulator  
 Routes: `/irr`  
-Observed behavior: The "IRR type" dropdown contains duplicate options. Specifically, "Whole fund" and "Investor specific" are listed twice in the dropdown.  
+Observed behavior: The "IRR type" dropdown contains duplicate labels ("Whole fund" and "Investor specific"). While these represent different calculation logic (Fund Cash Flow vs. Investor Cash Flow), they are indistinguishable to both the user and automation locators.
 
 Expected behavior:
-- The dropdown should list each unique IRR calculation type exactly once.
+- Labels should be uniquely descriptive (e.g., "Whole fund (Fund CF)") OR
+- Elements should have unique identifiers (e.g., `data-testid`) to allow reliable automation without relying on ambiguous text.
 
 Impact:
-- Minor UX confusion. Does not seem to break calculation logic, but looks unpolished.
+- **UX Confusion:** Users must guess which option corresponds to which cash flow logic.
+- **Testability Gap:** Automation cannot reliably select a specific "Whole fund" option using standard text-based locators.
 
 Suggested fix:
-- Deduplicate the options array bound to the dropdown, or fix the source configuration enum.
+- Update labels for clarity.
+- Implement `data-testid` on all calculation type options to support robust E2E testing.
 
 Regression test:
 - `tests/e2e/bugs/bug-005-irr-duplicate-options.spec.ts`
