@@ -127,6 +127,24 @@ Regression test:
 
 - `tests/e2e/bugs/bug-004-permission-flash-on-login.spec.ts`
 
+### BUG-005 [Low] - IRR Type dropdown contains duplicate options
+
+Modules: Toolkits > IRR simulator  
+Routes: `/irr`  
+Observed behavior: The "IRR type" dropdown contains duplicate options. Specifically, "Whole fund" and "Investor specific" are listed twice in the dropdown.  
+
+Expected behavior:
+- The dropdown should list each unique IRR calculation type exactly once.
+
+Impact:
+- Minor UX confusion. Does not seem to break calculation logic, but looks unpolished.
+
+Suggested fix:
+- Deduplicate the options array bound to the dropdown, or fix the source configuration enum.
+
+Regression test:
+- `tests/e2e/bugs/bug-005-irr-duplicate-options.spec.ts`
+
 ## Test Case Coverage Summary
 
 | Area | Happy | Edge | Negative/Bug | First-Pass Focus |
