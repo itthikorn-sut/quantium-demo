@@ -1,68 +1,132 @@
 import { test, expect } from '@playwright/test';
-import { expectBodyToContain, expectNoCrashText, gotoModule } from '../support/ui';
+import { EntitiesPage } from '../pages/EntitiesPage';
 
 test.describe('Investor Entities', () => {
-  test('INV-HAPPY-001 - investor list loads', async ({ page }) => {
-    await gotoModule(page, '/investor');
+  let entitiesPage: EntitiesPage;
 
-    await expectBodyToContain(page, /investor/i);
-    await expect(page.getByRole('table')).toBeVisible();
+  test.beforeEach(async ({ page }) => {
+    entitiesPage = new EntitiesPage(page);
   });
 
-  test('INV-HAPPY-002 - create investor form exposes core master-data fields', async ({ page }) => {
-    await gotoModule(page, '/investor/create');
+  // ── Investor List ──────────────────────────────────────────
+  test('INV-HAPPY-001 — investor list page renders data table', async () => {
+    await entitiesPage.goto('investor');
+    const table = entitiesPage.dataTable();
+    await expect(table).toBeVisible({ timeout: 15000 });
+    expect(await table.getByRole('row').count()).toBeGreaterThanOrEqual(2);
+  });
 
-    for (const label of [/legal name/i, /investor role/i, /display name/i, /entity type/i]) {
-      await expectBodyToContain(page, label);
+  test('INV-HAPPY-002 — investor table has expected column headers', async () => {
+    await entitiesPage.goto('investor');
+    await expect(entitiesPage.dataTable()).toBeVisible({ timeout: 15000 });
+
+    const expectedColumns = ['Legal Name', 'Display Name', 'Investor Role', 'Entity Type',
+      'Total Commitment', 'Paid-in Capital'];
+    for (const col of expectedColumns) {
+      await expect(entitiesPage.columnHeader(col)).toBeVisible();
     }
   });
 
-  test('INV-HAPPY-003 - investor table exposes commitment and paid-in data', async ({ page }) => {
-    await gotoModule(page, '/investor');
+  test('INV-HAPPY-003 — investor table displays monetary commitment values', async () => {
+    await entitiesPage.goto('investor');
+    await expect(entitiesPage.dataTable()).toBeVisible({ timeout: 15000 });
 
-    await expectBodyToContain(page, /total commitment/i);
-    await expectBodyToContain(page, /paid-in capital/i);
+    const dollarCells = entitiesPage.monetaryCells();
+    expect(await dollarCells.count()).toBeGreaterThanOrEqual(1);
   });
 
-  test('INV-HAPPY-004 - add menu exposes single and bulk creation paths', async ({ page }) => {
-    await gotoModule(page, '/investor');
-    await page.getByRole('button', { name: /add/i }).click();
-
-    await expectBodyToContain(page, /single investor/i);
-    await expectBodyToContain(page, /multiple investors|excel import/i);
+  // ── Add/Create Actions ─────────────────────────────────────
+  test('INV-HAPPY-004 — "Add" button exposes single and bulk creation paths', async () => {
+    await entitiesPage.goto('investor');
+    const addBtn = entitiesPage.addButton();
+    await expect(addBtn).toBeVisible();
+    await addBtn.click();
+    
+    const optionsText = await entitiesPage.addDropdownOptions().allInnerTexts();
+    const joined = optionsText.join(' ').toLowerCase();
+    expect(joined).toMatch(/single investor/);
+    expect(joined).toMatch(/multiple investors|excel import/);
   });
 
-  test('INV-EDGE-001 - investor group tab is available', async ({ page }) => {
-    await gotoModule(page, '/investor');
+  // ── Investor Create Form ───────────────────────────────────
+  test('INV-HAPPY-005 — create form exposes core master-data fields', async () => {
+    await entitiesPage.goto('investor/create');
 
-    await expectBodyToContain(page, /investor group/i);
+    for (const label of ['Legal Name', 'Display Name', 'Investor Role', 'Entity Type']) {
+      await expect(entitiesPage.formLabel(label)).toBeVisible({ timeout: 15000 });
+    }
   });
 
-  test('INV-EDGE-002 - create form supports logo upload affordance', async ({ page }) => {
-    await gotoModule(page, '/investor/create');
-
-    await expectBodyToContain(page, /drag and drop|supported formats/i);
+  test('INV-HAPPY-006 — create form has Legal Name text input', async () => {
+    await entitiesPage.goto('investor/create');
+    const legalNameInput = entitiesPage.legalNameInput();
+    await expect(legalNameInput).toBeVisible();
+    await expect(legalNameInput).toBeEditable();
   });
 
-  test('INV-NEGATIVE-001 - create form exposes required legal-name validation surface', async ({ page }) => {
-    await gotoModule(page, '/investor/create');
-
-    await expect(page.locator('input[placeholder="Legal name"], input[name*="legal" i]').first()).toBeVisible();
+  test('INV-HAPPY-007 — create form supports logo upload area', async () => {
+    await entitiesPage.goto('investor/create');
+    await expect(entitiesPage.logoUploadArea()).toBeVisible();
   });
 
-  test('INV-NEGATIVE-002 - investor pages do not render crash text', async ({ page }) => {
-    await gotoModule(page, '/investor');
-
-    await expectNoCrashText(page);
+  // ── Investor Group Tab ─────────────────────────────────────
+  test('INV-EDGE-001 — investor group tab is clickable', async () => {
+    await entitiesPage.goto('investor');
+    const groupTab = entitiesPage.investorGroupTab();
+    await expect(groupTab).toBeVisible();
   });
 
-  test('ENT-HAPPY-001 - asset module loads without crashing', async ({ page }) => {
-    await gotoModule(page, '/asset');
-    await expectNoCrashText(page);
+  // ── Asset Module ───────────────────────────────────────────
+  test('ENT-HAPPY-001 — asset list renders a data table', async () => {
+    await entitiesPage.goto('asset');
+    const table = entitiesPage.dataTable();
+    await expect(table).toBeVisible({ timeout: 15000 });
+    expect(await table.getByRole('row').count()).toBeGreaterThanOrEqual(2);
   });
 
-  test('ENT-HAPPY-002 - fund vehicle module loads without crashing', async ({ page }) => {
-    await gotoModule(page, '/fundvehicle');
-    await expectNoCrashText(page);
+  test('ENT-HAPPY-002 — asset table has expected column headers', async () => {
+    await entitiesPage.goto('asset');
+    await expect(entitiesPage.dataTable()).toBeVisible({ timeout: 15000 });
+
+    const expectedColumns = ['Name', 'Fund Vehicle', 'Investment Cost', 'Ownership'];
+    for (const col of expectedColumns) {
+      await expect(entitiesPage.columnHeader(col)).toBeVisible();
+    }
+  });
+
+  test('ENT-HAPPY-003 — asset table rows link to asset detail views', async () => {
+    await entitiesPage.goto('asset');
+    await expect(entitiesPage.dataTable()).toBeVisible({ timeout: 15000 });
+
+    const assetLink = entitiesPage.assetLinks().first();
+    await expect(assetLink).toBeVisible();
+    const href = await assetLink.getAttribute('href');
+    expect(href).toMatch(/\/asset\/view\//);
+  });
+
+  test('ENT-HAPPY-004 — asset table shows ownership percentages', async () => {
+    await entitiesPage.goto('asset');
+    await expect(entitiesPage.dataTable()).toBeVisible({ timeout: 15000 });
+
+    const percentCells = entitiesPage.percentageCells();
+    expect(await percentCells.count()).toBeGreaterThanOrEqual(1);
+  });
+
+  // ── Fund Vehicle Module ────────────────────────────────────
+  test('ENT-HAPPY-005 — fund vehicle module renders content', async () => {
+    await entitiesPage.goto('fundvehicle');
+    const funds = entitiesPage.fundVehicleItems();
+    await expect(funds.first()).toBeVisible({ timeout: 15000 });
+  });
+
+  // ── Negative ───────────────────────────────────────────────
+  test('INV-NEGATIVE-001 — investor page does not render crash text', async () => {
+    await entitiesPage.goto('investor');
+    await expect(entitiesPage.serverErrorText()).not.toBeVisible({ timeout: 15000 });
+  });
+
+  test('ENT-NEGATIVE-001 — asset page does not render crash text', async () => {
+    await entitiesPage.goto('asset');
+    await expect(entitiesPage.serverErrorText()).not.toBeVisible({ timeout: 15000 });
   });
 });

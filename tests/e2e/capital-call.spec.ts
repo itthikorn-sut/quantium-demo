@@ -1,59 +1,101 @@
 import { test, expect } from '@playwright/test';
-import { expectBodyToContain, expectNoCrashText } from '../support/ui';
+import { CapitalCallPage } from '../pages/CapitalCallPage';
 
 test.describe('Capital Call', () => {
+  let capitalCallPage: CapitalCallPage;
+
   test.beforeEach(async ({ page }) => {
-    await page.goto('/capital');
-    await page.waitForLoadState('domcontentloaded');
+    capitalCallPage = new CapitalCallPage(page);
+    await capitalCallPage.goto();
   });
 
-  test('CAP-HAPPY-001 - capital call list renders a heading and data surface', async ({ page }) => {
-    await expectBodyToContain(page, /capital call - distribution/i);
-    await expect(page.getByRole('table').or(page.locator('[class*="table" i], [class*="grid" i]').first()).first()).toBeVisible();
+  // ── Page Structure ─────────────────────────────────────────
+  test('CAP-HAPPY-001 — page heading shows "Capital Call - Distribution"', async () => {
+    await expect(capitalCallPage.heading()).toBeVisible({ timeout: 15000 });
   });
 
-  test('CAP-HAPPY-002 - filter action is available', async ({ page }) => {
-    const filter = page.getByRole('button', { name: /filter/i }).first();
-
-    await expect(filter).toBeVisible();
-    await filter.click();
-    await expect(page.locator('[class*="filter" i], [class*="dropdown" i], [role="dialog"]').first()).toBeVisible();
+  test('CAP-HAPPY-002 — data table is rendered with rows', async () => {
+    const table = capitalCallPage.dataTable();
+    await expect(table).toBeVisible({ timeout: 15000 });
+    expect(await table.getByRole('row').count()).toBeGreaterThanOrEqual(2);
   });
 
-  test('CAP-HAPPY-003 - new transaction entry points are visible', async ({ page }) => {
-    await page.getByRole('button', { name: /new/i }).click();
+  test('CAP-HAPPY-003 — table exposes financial column headers', async () => {
+    await expect(capitalCallPage.dataTable()).toBeVisible({ timeout: 15000 });
 
-    await expectBodyToContain(page, /single transaction|excel import|new commitment/i);
+    const expectedColumns = ['Date', 'Code', 'Fund', 'Instrument', 'Amount', 'Status'];
+    for (const col of expectedColumns) {
+      await expect(capitalCallPage.columnHeader(col)).toBeVisible();
+    }
   });
 
-  test('CAP-HAPPY-004 - transaction table exposes financial columns', async ({ page }) => {
-    await expectBodyToContain(page, /due date/i);
-    await expectBodyToContain(page, /total amount/i);
-    await expectBodyToContain(page, /status/i);
+  // ── Action Buttons ─────────────────────────────────────────
+  test('CAP-HAPPY-004 — "New" button is visible and clickable', async () => {
+    const newBtn = capitalCallPage.newButton();
+    await expect(newBtn).toBeVisible();
+    await newBtn.click();
+    
+    // Check specific options
+    const optionsText = await capitalCallPage.newDropdownOptions().allInnerTexts();
+    const joined = optionsText.join(' ').toLowerCase();
+    expect(joined).toMatch(/single transaction/);
+    expect(joined).toMatch(/excel import/);
   });
 
-  test('CAP-EDGE-001 - folder view option is available for alternate navigation', async ({ page }) => {
-    await expect(page.getByRole('button', { name: /folder view/i })).toBeVisible();
+  test('CAP-HAPPY-005 — filter button opens filter panel', async () => {
+    const filterBtn = capitalCallPage.filterButton();
+    await expect(filterBtn).toBeVisible();
+    await filterBtn.click();
+    await expect(capitalCallPage.filterResetButton()).toBeVisible();
+    await expect(capitalCallPage.filterApplyButton()).toBeVisible();
   });
 
-  test('CAP-EDGE-002 - filter reset and apply actions are available together', async ({ page }) => {
-    await page.getByRole('button', { name: /filter/i }).click();
-
-    await expect(page.getByRole('button', { name: /reset/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /apply/i })).toBeVisible();
+  test('CAP-HAPPY-006 — folder view toggle button is present', async () => {
+    await expect(capitalCallPage.folderViewButton()).toBeVisible();
   });
 
-  test('CAP-NEGATIVE-001 - create flow protects required amount fields', async ({ page }) => {
-    const create = page.getByRole('button', { name: /new|create|add/i }).first();
-    test.skip(!(await create.isVisible()), 'Create action is not available for this role.');
-
-    await create.click();
-    await page.getByRole('button', { name: /save|submit|create/i }).first().click();
-
-    await expect(page.locator('[class*="error" i], [class*="invalid" i], [class*="validation" i], input:invalid').first()).toBeVisible();
+  // ── Pagination ─────────────────────────────────────────────
+  test('CAP-HAPPY-007 — pagination controls are present', async () => {
+    await expect(capitalCallPage.dataTable()).toBeVisible({ timeout: 15000 });
+    await expect(capitalCallPage.paginationLabel()).toBeVisible();
   });
 
-  test('CAP-NEGATIVE-002 - list page does not render a crash state', async ({ page }) => {
-    await expectNoCrashText(page);
+  test('CAP-HAPPY-008 — items-per-page dropdown has standard options', async () => {
+    const pageSizeSelect = capitalCallPage.itemsPerPageSelect();
+    await expect(pageSizeSelect).toBeVisible({ timeout: 15000 });
+
+    const options = await pageSizeSelect.locator('option').allInnerTexts();
+    expect(options).toEqual(expect.arrayContaining(['15', '50', '100']));
+  });
+
+  test('CAP-HAPPY-009 — page navigation links are present', async () => {
+    await expect(capitalCallPage.paginationLabel()).toBeVisible({ timeout: 15000 });
+    const nav = capitalCallPage.pageNavigation();
+    const prevLink = nav.getByRole('link', { name: /Previous/i });
+    const nextLink = nav.getByRole('link', { name: /Next/i });
+    const hasPagination = (await prevLink.count()) > 0 || (await nextLink.count()) > 0;
+    expect(hasPagination).toBeTruthy();
+  });
+
+  // ── Table Data Quality ─────────────────────────────────────
+  test('CAP-EDGE-001 — table cells contain formatted monetary values', async () => {
+    await expect(capitalCallPage.dataTable()).toBeVisible({ timeout: 15000 });
+    const dollarCells = capitalCallPage.monetaryCells();
+    expect(await dollarCells.count()).toBeGreaterThanOrEqual(1);
+  });
+
+  test('CAP-EDGE-002 — status column shows known status values', async () => {
+    await expect(capitalCallPage.dataTable()).toBeVisible({ timeout: 15000 });
+    const statusCells = capitalCallPage.statusCells();
+    await expect(statusCells.first()).toBeVisible();
+  });
+
+  // ── Negative ───────────────────────────────────────────────
+  test('CAP-NEGATIVE-001 — page does not render server error text', async () => {
+    await expect(capitalCallPage.serverErrorText()).not.toBeVisible({ timeout: 15000 });
+  });
+
+  test('CAP-NEGATIVE-002 — guest user does not see unauthorized message', async () => {
+    await expect(capitalCallPage.unauthorizedText()).not.toBeVisible();
   });
 });

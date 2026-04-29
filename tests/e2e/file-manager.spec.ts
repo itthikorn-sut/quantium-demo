@@ -1,28 +1,44 @@
 import { test, expect } from '@playwright/test';
-import { expectBodyToContain, expectNoCrashText, gotoModule } from '../support/ui';
+import { FileManagerPage } from '../pages/FileManagerPage';
 
 test.describe('File Manager', () => {
-  test('FILE-HAPPY-001 - fund vehicle document area is reachable', async ({ page }) => {
-    await gotoModule(page, '/documents/fund-vehicle');
+  let fileManagerPage: FileManagerPage;
 
-    await expectBodyToContain(page, /file manager|document|fund vehicle/i);
+  test.beforeEach(async ({ page }) => {
+    fileManagerPage = new FileManagerPage(page);
+    await fileManagerPage.goto();
   });
 
-  test('FILE-HAPPY-002 - document search remains available', async ({ page }) => {
-    await gotoModule(page, '/documents/fund-vehicle');
-
-    await expect(page.locator('input[placeholder="Search"]:visible')).toBeVisible();
+  // ── Page Structure ─────────────────────────────────────────
+  test('FILE-HAPPY-001 — file manager page renders heading', async () => {
+    // Check if the page has loaded successfully by verifying text content
+    const pageText = await fileManagerPage.page.locator('body').innerText();
+    expect(pageText.toLowerCase()).toMatch(/file manager|document|fund vehicle/i);
   });
 
-  test('FILE-EDGE-001 - document page handles guest permissions explicitly', async ({ page }) => {
-    await gotoModule(page, '/documents/fund-vehicle');
-
-    await expect(page.locator('body')).not.toHaveText(/^\s*$/);
+  test('FILE-HAPPY-002 — search input is present and functional', async () => {
+    const searchInput = fileManagerPage.searchInput();
+    await expect(searchInput).toBeVisible();
+    await expect(searchInput).toBeEditable();
   });
 
-  test('FILE-NEGATIVE-001 - document page does not expose crash text', async ({ page }) => {
-    await gotoModule(page, '/documents/fund-vehicle');
+  test('FILE-HAPPY-003 — file listing area renders content', async () => {
+    await expect(fileManagerPage.fileListingArea()).toBeVisible({ timeout: 15000 });
+  });
 
-    await expectNoCrashText(page);
+  test('FILE-HAPPY-004 — interactive controls are present (buttons, links)', async () => {
+    const controls = fileManagerPage.interactiveControls();
+    expect(await controls.count()).toBeGreaterThanOrEqual(2);
+  });
+
+  // ── Edge ───────────────────────────────────────────────────
+  test('FILE-EDGE-001 — page handles guest permissions without blank page', async ({ page }) => {
+    const bodyText = await page.locator('body').innerText();
+    expect(bodyText.trim().length).toBeGreaterThan(10);
+  });
+
+  // ── Negative ───────────────────────────────────────────────
+  test('FILE-NEGATIVE-001 — file manager does not show crash text', async () => {
+    await expect(fileManagerPage.serverErrorText()).not.toBeVisible({ timeout: 15000 });
   });
 });

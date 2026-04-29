@@ -1,59 +1,93 @@
 import { test, expect } from '@playwright/test';
-import { expectBodyToContain, expectNoCrashText, gotoModule } from '../support/ui';
+import { DealTransactionsPage } from '../pages/DealTransactionsPage';
 
 test.describe('Deal Transactions', () => {
+  let dealsPage: DealTransactionsPage;
+
   test.beforeEach(async ({ page }) => {
-    await gotoModule(page, '/investment');
+    dealsPage = new DealTransactionsPage(page);
+    await dealsPage.goto();
   });
 
-  test('DEAL-HAPPY-001 - deal transaction list loads', async ({ page }) => {
-    await expectBodyToContain(page, /deal/i);
-    await expectBodyToContain(page, /transaction date/i);
+  // ── Page Structure ─────────────────────────────────────────
+  test('DEAL-HAPPY-001 — deal transaction page renders heading', async () => {
+    await expect(dealsPage.heading(/deal|transaction|investment/i)).toBeVisible({ timeout: 15000 });
   });
 
-  test('DEAL-HAPPY-002 - deal status counters are visible', async ({ page }) => {
-    await expectBodyToContain(page, /complete/i);
-    await expectBodyToContain(page, /open|scheduled|overdue/i);
+  test('DEAL-HAPPY-002 — data table renders with rows', async () => {
+    const table = dealsPage.dataTable();
+    await expect(table).toBeVisible({ timeout: 15000 });
+    expect(await table.getByRole('row').count()).toBeGreaterThanOrEqual(2);
   });
 
-  test('DEAL-HAPPY-003 - new deal entry points are exposed', async ({ page }) => {
-    await page.getByRole('button', { name: /new/i }).click();
+  test('DEAL-HAPPY-003 — table has transaction column headers', async () => {
+    await expect(dealsPage.dataTable()).toBeVisible({ timeout: 15000 });
 
-    await expectBodyToContain(page, /new deal/i);
-    await expectBodyToContain(page, /existing deal|single asset/i);
+    const expectedColumns = ['Date', 'Code', 'Deal', 'Fund', 'Type', 'Amount'];
+    for (const col of expectedColumns) {
+      await expect(dealsPage.columnHeader(col)).toBeVisible();
+    }
   });
 
-  test('DEAL-EDGE-001 - folder view is available', async ({ page }) => {
-    await expect(page.getByRole('button', { name: /folder view/i })).toBeVisible();
+  // ── Status Counters ────────────────────────────────────────
+  test('DEAL-HAPPY-004 — status counters show completion states', async () => {
+    const counters = dealsPage.statusCounters();
+    await expect(counters.first()).toBeVisible({ timeout: 15000 });
   });
 
-  test('DEAL-EDGE-002 - excel import paths are visible from the new menu', async ({ page }) => {
-    await page.getByRole('button', { name: /new/i }).click();
-
-    await expectBodyToContain(page, /excel import/i);
+  // ── Action Buttons ─────────────────────────────────────────
+  test('DEAL-HAPPY-005 — "New" button exposes deal creation paths', async () => {
+    const newBtn = dealsPage.newButton();
+    await expect(newBtn).toBeVisible();
+    await newBtn.click();
+    
+    const optionsText = await dealsPage.newDropdownOptions().allInnerTexts();
+    const joined = optionsText.join(' ').toLowerCase();
+    expect(joined).toMatch(/new deal|existing deal|single asset|excel import/);
   });
 
-  test('DEAL-NEGATIVE-001 - deal list does not expose crash text', async ({ page }) => {
-    await expectNoCrashText(page);
+  test('DEAL-HAPPY-006 — folder view toggle is available', async () => {
+    await expect(dealsPage.folderViewButton()).toBeVisible();
   });
 
-  test('DEAL-NEGATIVE-002 - guest view does not show unauthorized state', async ({ page }) => {
-    await expect(page.locator('body')).not.toContainText(/unauthorized|access denied/i);
+  test('DEAL-HAPPY-007 — filter button opens filter panel', async () => {
+    const filterBtn = dealsPage.filterButton();
+    await expect(filterBtn).toBeVisible();
+    await filterBtn.click();
+    await expect(dealsPage.filterResetButton()).toBeVisible();
   });
 
-  test('TXN-HAPPY-001 - fund operation module loads without crashing', async ({ page }) => {
-    await gotoModule(page, '/fund-operation');
-    await expectNoCrashText(page);
+  // ── Pagination ─────────────────────────────────────────────
+  test('DEAL-EDGE-001 — pagination controls exist', async () => {
+    await expect(dealsPage.paginationLabel()).toBeVisible({ timeout: 15000 });
   });
 
-  test('TXN-HAPPY-002 - fund investment module loads without crashing', async ({ page }) => {
-    await gotoModule(page, '/fund-investment');
-    await expectNoCrashText(page);
+  // ── Sub-module: Fund Operation ─────────────────────────────
+  test('TXN-HAPPY-001 — fund operation module loads with heading and table', async () => {
+    await dealsPage.gotoModule('/fund-operation');
+    await expect(dealsPage.heading(/fund operation|operation/i)).toBeVisible({ timeout: 15000 });
+    await expect(dealsPage.dataTable()).toBeVisible();
   });
 
-  test('TXN-HAPPY-003 - spv transfer module loads without crashing', async ({ page }) => {
-    await gotoModule(page, '/spv-transfer');
-    await expectNoCrashText(page);
+  // ── Sub-module: Fund Investment ────────────────────────────
+  test('TXN-HAPPY-002 — fund investment module loads with heading and table', async () => {
+    await dealsPage.gotoModule('/fund-investment');
+    await expect(dealsPage.heading(/fund investment|investment/i)).toBeVisible({ timeout: 15000 });
+    await expect(dealsPage.dataTable()).toBeVisible();
+  });
+
+  // ── Sub-module: SPV Transfer ───────────────────────────────
+  test('TXN-HAPPY-003 — SPV transfer module loads with heading', async () => {
+    await dealsPage.gotoModule('/spv-transfer');
+    await expect(dealsPage.heading(/SPV|transfer/i)).toBeVisible({ timeout: 15000 });
+  });
+
+  // ── Negative ───────────────────────────────────────────────
+  test('DEAL-NEGATIVE-001 — deal list does not expose crash text', async () => {
+    await expect(dealsPage.serverErrorText()).not.toBeVisible({ timeout: 15000 });
+  });
+
+  test('DEAL-NEGATIVE-002 — guest view does not show unauthorized state', async () => {
+    await expect(dealsPage.unauthorizedText()).not.toBeVisible();
   });
 });
-

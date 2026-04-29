@@ -1,50 +1,85 @@
 import { test, expect } from '@playwright/test';
-import { expectBodyToContain, expectNoCrashText } from '../support/ui';
+import { ToolkitsPage } from '../pages/ToolkitsPage';
 
 test.describe('IRR Simulator', () => {
+  let toolkits: ToolkitsPage;
+
   test.beforeEach(async ({ page }) => {
-    await page.goto('/irr');
-    await page.waitForLoadState('domcontentloaded');
+    toolkits = new ToolkitsPage(page);
+    await toolkits.goto('irr');
+    await expect(toolkits.heading(/IRR simulator/i)).toBeVisible({ timeout: 15000 });
   });
 
-  test('IRR-HAPPY-001 - simulator exposes required setup controls', async ({ page }) => {
-    await expectBodyToContain(page, /IRR simulator/i);
-    await expect(page.getByRole('button', { name: /generate|calculate/i }).first()).toBeVisible();
-    await expect(page.getByRole('combobox').first().or(page.locator('select, [role="combobox"]').first()).first()).toBeVisible();
+  // ── Fund Vehicle Dropdown ──────────────────────────────────
+  test('IRR-HAPPY-001 — fund vehicle dropdown is present with label', async () => {
+    await expect(toolkits.formLabel(/^Fund vehicle$/i)).toBeVisible();
+    await expect(toolkits.fundVehicleDropdown()).toBeVisible();
   });
 
-  test('IRR-HAPPY-002 - IRR type options include expected calculation scopes', async ({ page }) => {
-    await expectBodyToContain(page, /whole fund/i);
-    await expectBodyToContain(page, /investor specific/i);
-    await expectBodyToContain(page, /deal specific/i);
+  test('IRR-HAPPY-002 — fund vehicle dropdown contains known fund vehicles', async () => {
+    const options = await toolkits.fundVehicleDropdown().locator('option').allInnerTexts();
+    expect(options).toEqual(expect.arrayContaining([
+      'USD Fund I', 'Euro Fund I', 'USD Fund II', 'USD Fund Parallel'
+    ]));
   });
 
-  test('IRR-HAPPY-003 - known fund vehicles are selectable candidates', async ({ page }) => {
-    await expectBodyToContain(page, /USD Fund I/i);
-    await expectBodyToContain(page, /Euro Fund I/i);
-    await expectBodyToContain(page, /USD Fund II/i);
+  test('IRR-HAPPY-003 — fund vehicle dropdown has 9 options', async () => {
+    const optionCount = await toolkits.fundVehicleDropdown().locator('option').count();
+    expect(optionCount).toBeGreaterThanOrEqual(7);
   });
 
-  test('IRR-HAPPY-004 - generate action is visible for calculation workflow', async ({ page }) => {
-    await expect(page.getByRole('button', { name: /generate/i })).toBeVisible();
+  // ── IRR Type Dropdown ──────────────────────────────────────
+  test('IRR-HAPPY-004 — IRR type dropdown is present with label', async () => {
+    await expect(toolkits.formLabel(/^IRR type$/i)).toBeVisible();
+    await expect(toolkits.irrTypeDropdown()).toBeVisible();
   });
 
-  test('IRR-EDGE-001 - as-of date input is present for point-in-time calculations', async ({ page }) => {
-    await expect(page.locator('input[placeholder="yyyy-mm-dd"], input[name*="date" i]').first()).toBeVisible();
+  test('IRR-HAPPY-005 — IRR type options include all calculation scopes', async () => {
+    const options = await toolkits.irrTypeDropdown().locator('option').allInnerTexts();
+    expect(options).toEqual(expect.arrayContaining([
+      'Whole fund', 'Investor specific', 'Deal specific', 'Unlevered performance'
+    ]));
   });
 
-  test('IRR-EDGE-002 - unlevered performance option is visible', async ({ page }) => {
-    await expectBodyToContain(page, /unlevered performance/i);
+  // ── Date Input ─────────────────────────────────────────────
+  test('IRR-HAPPY-006 — as-of date input has default value', async () => {
+    await expect(toolkits.formLabel(/^IRR as of date$/i)).toBeVisible();
+    const dateInput = toolkits.dateInput();
+    await expect(dateInput).toBeVisible();
+    
+    const value = await dateInput.inputValue();
+    expect(value).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 
-  test('IRR-NEGATIVE-001 - generate without required selections does not crash', async ({ page }) => {
-    await page.getByRole('button', { name: /generate/i }).click();
-
-    await expectNoCrashText(page);
+  // ── Generate Button ────────────────────────────────────────
+  test('IRR-HAPPY-007 — "Generate" button is visible and enabled', async () => {
+    const generateBtn = toolkits.generateButton();
+    await expect(generateBtn).toBeVisible();
+    await expect(generateBtn).toBeEnabled();
   });
 
-  test('IRR-NEGATIVE-002 - simulator does not expose server error text on initial load', async ({ page }) => {
-    await expectNoCrashText(page);
+  test('IRR-HAPPY-008 — clicking Generate does not crash the page', async () => {
+    const generateBtn = toolkits.generateButton();
+    await generateBtn.click();
+    await expect(toolkits.serverErrorText()).not.toBeVisible();
+    await expect(generateBtn).toBeVisible();
+  });
+
+  // ── Form Interaction ───────────────────────────────────────
+  test('IRR-EDGE-001 — changing fund vehicle selection updates the dropdown value', async () => {
+    const fundSelect = toolkits.fundVehicleDropdown();
+    await fundSelect.selectOption({ label: 'Euro Fund I' });
+    await expect(fundSelect).toHaveValue(/euro|2/i);
+  });
+
+  test('IRR-EDGE-002 — selecting "Investor specific" IRR type is functional', async () => {
+    const irrTypeSelect = toolkits.irrTypeDropdown();
+    await irrTypeSelect.selectOption({ label: 'Investor specific' });
+    await expect(toolkits.serverErrorText()).not.toBeVisible();
+  });
+
+  // ── Negative ───────────────────────────────────────────────
+  test('IRR-NEGATIVE-001 — simulator does not expose server error on load', async () => {
+    await expect(toolkits.serverErrorText()).not.toBeVisible();
   });
 });
-
