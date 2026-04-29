@@ -10,6 +10,17 @@
 
 ---
 
+## Current Progress (Update: 2026-04-30)
+
+✅ **Task 1: Feature Audit** (Completed & committed to `01-feature-audit.md`)
+✅ **Task 2: Playwright Tests** (Completed: 104 tests across 21 spec files. Fully refactored to **Page Object Model (POM)** with 12 new Page classes, resolving 140+ strict mode violations. PR merged to `main`.)
+✅ **Task 3: QA Lead POV & Test Strategy** (Completed & committed to `03-qa-lead-pov.md` and `05-test-strategy.md`)
+⏳ **Task 4: AI Ticket-to-TestCase Converter** (Up next)
+⏳ **Task 5: AI PR Review Bot** (Pending)
+⏳ **Task 6: GitHub Actions CI Pipeline** (Pending)
+
+---
+
 ## Product Map (Discovered via Live Exploration 2026-04-29)
 
 | Module | Routes | Key UI |
@@ -38,6 +49,7 @@ quantium-qa-lead-showcase/
 ├── 00-talking-points.md
 ├── 01-feature-audit.md
 ├── 03-qa-lead-pov.md
+├── 05-test-strategy.md
 ├── .github/
 │   └── workflows/
 │       └── ci.yml
@@ -45,25 +57,46 @@ quantium-qa-lead-showcase/
 ├── package.json
 ├── tests/
 │   ├── e2e/
-│   │   ├── global-setup.ts
-│   │   ├── dashboard.spec.ts
-│   │   ├── capital-call.spec.ts
-│   │   ├── toolkits-irr.spec.ts
-│   │   ├── toolkits-waterfall.spec.ts
-│   │   ├── reports.spec.ts
 │   │   ├── accounting.spec.ts
+│   │   ├── capital-call.spec.ts
+│   │   ├── crm-rbac.spec.ts
+│   │   ├── dashboard.spec.ts
+│   │   ├── deal-transactions.spec.ts
 │   │   ├── entities-investor.spec.ts
+│   │   ├── file-manager.spec.ts
+│   │   ├── global-setup.ts
+│   │   ├── reports.spec.ts
 │   │   ├── search.spec.ts
+│   │   ├── structure.spec.ts
+│   │   ├── toolkits-irr.spec.ts
+│   │   ├── toolkits-management-fee.spec.ts
+│   │   ├── toolkits-waterfall.spec.ts
+│   │   ├── valuation.spec.ts
 │   │   └── bugs/
 │   │       ├── bug-001-crm-403-silent.spec.ts
 │   │       ├── bug-002-api-origin-warning.spec.ts
-│   │       └── bug-003-iframe-sandbox.spec.ts
+│   │       ├── bug-003-iframe-sandbox.spec.ts
+│   │       ├── bug-004-permission-flash-on-login.spec.ts
+│   │       └── bug-005-irr-duplicate-options.spec.ts
 │   ├── api/
+│   │   ├── auth.spec.ts
 │   │   ├── capital.spec.ts
-│   │   └── auth.spec.ts
+│   │   ├── core-contracts.spec.ts
+│   │   └── dashboard.spec.ts
 │   └── pages/
+│       ├── AccountingPage.ts
+│       ├── CapitalCallPage.ts
+│       ├── CrmPage.ts
+│       ├── DashboardPage.ts
+│       ├── DealTransactionsPage.ts
+│       ├── EntitiesPage.ts
+│       ├── FileManagerPage.ts
 │       ├── LoginPage.ts
-│       └── DashboardPage.ts
+│       ├── ReportsPage.ts
+│       ├── SearchPage.ts
+│       ├── StructurePage.ts
+│       ├── ToolkitsPage.ts
+│       └── ValuationPage.ts
 ├── ai-tools/
 │   ├── ticket_to_testcases.py
 │   ├── mock_tickets.json
@@ -116,32 +149,49 @@ Tester: [Your Name] | Explored: 2026-04-29 | Environment: Production demo (inter
 - **Fix:** Remove `allow-same-origin` from silent-refresh iframe; use `postMessage` for token relay
 - **Test:** `tests/e2e/bugs/bug-003-iframe-sandbox.spec.ts` — **currently FAILING on production**
 
+### BUG-004 [CRITICAL] — Permission warning flashes during authenticated navigation
+- **Reproduce:** Login as interviewguest → navigate normal routes
+- **Actual:** `403` on background CRM lookup triggers global "do not have permission" toast
+- **Impact:** High trust impact. Users see "no permission" while doing valid workflows.
+- **Fix:** Lazy-load CRM contact-roles; add route-level handling for expected optional `403`s without global toasts.
+- **Test:** `tests/e2e/bugs/bug-004-permission-flash-on-login.spec.ts`
+
+### BUG-005 [LOW] — Ambiguous IRR Type options (Fund vs Investor CF)
+- **Reproduce:** Toolkits > IRR simulator > "IRR type" dropdown
+- **Actual:** Duplicate labels ("Whole fund" and "Investor specific") for different CF logic.
+- **Impact:** UX confusion and testability gap.
+- **Fix:** Update labels for clarity and implement `data-testid`.
+- **Test:** `tests/e2e/bugs/bug-005-irr-duplicate-options.spec.ts`
+
+### BUG-006 [MEDIUM] — High regression fragility due to index-based locators
+- **Reproduce:** Global UI interactions
+- **Actual:** Critical path elements lack stable identifiers (`data-testid`), forcing automation to use fragile index selectors.
+- **Impact:** Maintenance debt and Playwright strict mode violations.
+- **Fix:** Refactored entire E2E suite to **Page Object Model (POM)** with structurally-aware locators to eliminate strict mode errors.
+
 ---
 
 ## TEST CASES (Summary — full tests in /tests/ directory)
 
-| Module | Happy | Edge | Negative | UI | API |
-|--------|-------|------|----------|----|-----|
-| Auth | 2 | 2 | 4 | 1 | 2 |
-| Dashboard | 4 | 3 | 1 | 2 | 2 |
-| Entities — Investor | 4 | 4 | 2 | 2 | 3 |
-| Entities — Asset | 3 | 2 | 0 | 1 | 1 |
-| Structure chart | 2 | 2 | 1 | 1 | 0 |
-| Transactions — Capital | 4 | 2 | 3 | 1 | 3 |
-| Transactions — Deal | 3 | 2 | 1 | 0 | 1 |
-| Valuation | 3 | 2 | 2 | 1 | 2 |
-| Mgmt fee calculator | 3 | 2 | 2 | 1 | 1 |
-| IRR simulator | 4 | 3 | 1 | 1 | 1 |
-| Waterfall simulator | 3 | 2 | 2 | 1 | 1 |
-| Search | 3 | 2 | 2 | 1 | 0 |
-| Reports | 4 | 2 | 1 | 3 | 2 |
-| Accounting — Trial balance | 3 | 1 | 1 | 1 | 1 |
-| Accounting — Journal | 2 | 1 | 1 | 0 | 1 |
-| CRM | 2 | 0 | 2 | 0 | 2 |
-| File Manager | 3 | 2 | 2 | 0 | 2 |
-| Global / RBAC | 3 | 2 | 3 | 2 | 0 |
-| **Bugs (failing tests)** | 0 | 0 | 3 | 0 | 0 |
-| **Total** | **57** | **38** | **34** | **19** | **25** |
+| Module | Happy | Edge | Negative | API | Total |
+|--------|-------|------|----------|-----|-------|
+| Dashboard | 13 | 3 | 2 | 1 | 19 |
+| Capital calls | 9 | 2 | 2 | 3 | 16 |
+| Deal transactions | 7 | 1 | 2 | 1 | 11 |
+| Valuation | 8 | 3 | 1 | 2 | 14 |
+| Entities — Investor | 10 | 1 | 2 | 3 | 16 |
+| Mgmt fee calculator | 4 | 0 | 1 | 1 | 6 |
+| IRR simulator | 8 | 2 | 1 | 1 | 12 |
+| Waterfall simulator | 11 | 2 | 2 | 1 | 16 |
+| Search | 7 | 0 | 1 | 0 | 8 |
+| Reports | 5 | 2 | 2 | 2 | 11 |
+| Accounting | 13 | 1 | 1 | 2 | 17 |
+| CRM | 5 | 2 | 2 | 2 | 11 |
+| File Manager | 4 | 1 | 1 | 2 | 8 |
+| Structure chart | 6 | 1 | 1 | 0 | 8 |
+| Auth / Global | 0 | 0 | 0 | 4 | 4 |
+| **Bugs (failing tests)** | 0 | 0 | 5 | 0 | 5 |
+| **Total** | **110** | **21** | **26** | **25** | **182** |
 ```
 
 - [ ] **Step 2: Commit**
