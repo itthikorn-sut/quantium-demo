@@ -1,0 +1,42 @@
+[
+  {
+    "id": "CORE-BUG-001",
+    "title": "CRM Entity and Contact Role: Silent 403 with no user feedback",
+    "description": "BUG: When a user without CRM entity access navigates to /crm/entity or /crm/contact, the page is blank with no error message. The API returns 403 on GET /api/crmentity/list and GET /api/crmcontactrole/list but Angular's HTTP interceptor swallows the error silently. The user has no idea whether the blank screen is a loading state, empty data, or a permission issue. Fix: intercept 403 at global HTTP interceptor, display user-friendly message: 'You don't have permission to view this. Contact your administrator.' Should NOT expose the raw API error message."
+  },
+  {
+    "id": "CORE-BUG-002",
+    "title": "Global: API origin URL not set warning on every page load",
+    "description": "BUG: The console warning 'The API origin URL has not been set.' fires on every authenticated page load. This is emitted from the Angular app's environment config check. The environment.apiOriginUrl value is empty or undefined. This could cause API calls to use relative URLs which may break in CDN or reverse proxy configurations. Fix: validate environment.apiOriginUrl is set at app bootstrap (AppModule constructor), throw hard error in non-production environments if missing."
+  },
+  {
+    "id": "CORE-BUG-003",
+    "title": "Security: OAuth silent-refresh iframe sandbox misconfiguration",
+    "description": "BUG/SECURITY: The silent-refresh iframe used for OAuth token renewal has both allow-scripts and allow-same-origin in its sandbox attribute. The browser warns: 'An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing.' This creates a potential token exfiltration vector if third-party scripts are ever injected. Fix: remove allow-same-origin from the silent-refresh iframe sandbox, use window.postMessage for token relay between iframe and parent."
+  },
+  {
+    "id": "CORE-FEAT-101",
+    "title": "Capital Call creation with commitment validation",
+    "description": "As a fund manager, I want to create a capital call for one or more investors to request drawdown of committed capital. Required fields: investor(s), drawdown amount, call date, due date. Business rules: amount cannot exceed each investor's available commitment balance (committed minus previously drawn). On save, the system must create a corresponding accounting journal entry (debit capital call receivable, credit investor capital account). Approval workflow triggers automatically if total call amount exceeds the fund's configured threshold."
+  },
+  {
+    "id": "CORE-FEAT-102",
+    "title": "IRR Simulator — all three IRR types",
+    "description": "As a portfolio manager, I want to calculate IRR for (a) whole fund, (b) a specific investor, or (c) a specific deal/investment. For whole fund: aggregate cashflows across all investors. For investor-specific: use that investor's capital calls and distributions only. For deal-specific: use investment cost and realized/unrealized proceeds for that asset. As-of date field defaults to today but user can override. If no cashflows exist for the selected scope, show 'No data available for this period' — not an error. Export to Excel optional."
+  },
+  {
+    "id": "CORE-FEAT-103",
+    "title": "Waterfall distribution simulator with allocation rules",
+    "description": "As a GP, I want to simulate how a distribution amount would be allocated among investors according to the fund's waterfall rules. User selects: entity (fund vehicle), allocation rule, investor(s), distribution amount, distribution date. System applies: return of capital → preferred return (hurdle rate) → catch-up → carried interest → pro-rata split. Results show each investor's allocation, GP carry amount, and net distribution. Must support $0 distribution (shows no allocation). Export button generates Excel with breakdown."
+  },
+  {
+    "id": "CORE-FEAT-104",
+    "title": "Trial balance generation with date range filter",
+    "description": "As a fund accountant, I want to generate a trial balance for a selected entity and date range. User selects: entity, accounting level, period type, from/to dates. System aggregates all journal entries within the period, groups by account code, and sums debit and credit columns. The trial balance must always balance: total debits = total credits. Generate button triggers computation. Export button downloads Excel. If no journal entries exist for the period, show all accounts with zero balances."
+  },
+  {
+    "id": "CORE-FEAT-105",
+    "title": "Investor create form with all entity types",
+    "description": "As a fund admin, I want to create a new investor entity with complete KYC and entity information. Required fields: Legal name, Investor role (GP/LP/Special LP/Third Party). Optional: Display name, TIN, Entity type (20+ options including Family Office, Pension Fund, SWF, etc.), Place of incorporation (200+ countries), Investor group, Name used previously, Logo image (JPG/PNG/GIF). On save, investor appears in the fund's investor list. Cancel discards without saving."
+  }
+]

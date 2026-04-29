@@ -1,0 +1,30 @@
+diff --git a/src/app/capital/capital.service.ts b/src/app/capital/capital.service.ts
+index a1b2c3d..e4f5g6h 100644
+--- a/src/app/capital/capital.service.ts
++++ b/src/app/capital/capital.service.ts
+@@ -42,10 +42,18 @@ export class CapitalService {
+   createCapitalCall(payload: CapitalCallPayload): Observable<CapitalCall> {
++    const availableBalance = this.commitmentService.getBalance(payload.investorId);
++    if (payload.amount > availableBalance) {
++      return throwError(() => new Error('Insufficient balance'));
++    }
+     return this.http.post<CapitalCall>('/api/capital', payload).pipe(
+       catchError(err => {
+-        console.error(err);
+-        return EMPTY;
++        return throwError(() => err);
+       })
+     );
+   }
+diff --git a/src/app/crm/crm-entity.component.ts b/src/app/crm/crm-entity.component.ts
+index b2c3d4e..f5g6h7i 100644
+--- a/src/app/crm/crm-entity.component.ts
++++ b/src/app/crm/crm-entity.component.ts
+@@ -28,7 +28,7 @@ export class CrmEntityComponent implements OnInit {
+   loadEntities(): void {
+     this.crmService.getEntities().subscribe({
+       next: (data) => this.entities = data,
+-      error: (err) => console.error(err),
++      error: () => {},
+     });
+   }
