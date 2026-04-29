@@ -148,12 +148,31 @@ Suggested fix:
 Regression test:
 - `tests/e2e/bugs/bug-005-irr-duplicate-options.spec.ts`
 
+### BUG-006 [Medium] - High regression fragility due to index-based locators
+
+Modules: Global / Multiple  
+Observed behavior: Many interactive elements (buttons, inputs, and dropdown options) lack unique, stable identifiers (`id`, `name`, or `data-testid`). This forces the test suite to rely on index-based locators (e.g., `.nth(0)`, `.first()`, or positional CSS/XPath).
+
+Expected behavior:
+- All critical-path interactive elements should have unique, stable `data-testid` attributes.
+- Test locators should be resilient to UI layout shifts or reordering of sibling elements.
+
+Impact:
+- **High Maintenance Cost:** Tests are "brittle" and frequently break due to minor DOM shifts or reordering, even when functionality is intact.
+- **Reduced Confidence:** Test failures often represent "automation noise" rather than actual product regressions, leading to "crying wolf" syndrome.
+- **Slower Development:** Investigating and fixing fragile locators during UI updates consumes significant engineering time.
+
+Suggested fix:
+- Mandate the use of `data-testid` for all new features.
+- Incrementally refactor "golden path" journeys to use stable locators.
+- Establish a "Design for Testability" contract between QA and Dev.
+
 ## Test Case Coverage Summary
 
 | Area | Happy | Edge | Negative/Bug | First-Pass Focus |
 | --- | ---: | ---: | ---: | --- |
 | Authentication | 1 | 1 | 2 | Valid login, empty submit, invalid login, password masking |
-| Dashboard | 6 | 2 | 1 | KPIs, fund context, period controls, chart/data surfaces, API non-500 |
+| Dashboard | 6 | 2 | 2 | KPIs, fund context, period controls, chart/data surfaces, API non-500 |
 | Capital calls | 4 | 2 | 2 | List, filters, new transaction paths, required-field validation |
 | Deal transactions | 3 | 2 | 2 | Deal table, status counters, new/import paths, guest access safety |
 | Valuation | 3 | 2 | 1 | FMV columns, new valuation paths, filters, crash safety |
