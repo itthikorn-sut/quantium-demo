@@ -15,9 +15,9 @@ on:
         default: 'https://staging.quantiumcore.com'
 
 jobs:
-  # ── Job 1: Playwright E2E + API Tests ─────────────────────────
+  # ── Job 1: Playwright E2E Tests ───────────────────────────────
   e2e-tests:
-    name: E2E & API Tests (Playwright)
+    name: E2E Tests (Playwright)
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
 
@@ -42,23 +42,7 @@ jobs:
           TEST_PASSWORD: ${{ secrets.QA_TEST_PASSWORD }}
         run: npx playwright test "tests/e2e/[^/]+\.spec\.ts" --reporter=html,list,json
 
-      - name: Run API tests
-        env:
-          BASE_URL: https://www.quantiumcore.com
-          TEST_EMAIL: ${{ secrets.QA_TEST_EMAIL }}
-          TEST_PASSWORD: ${{ secrets.QA_TEST_PASSWORD }}
-        run: npx playwright test tests/api --reporter=list,json
-        continue-on-error: false  # API test failures block merge
-
-      - name: Run bug reproduction tests (expected failures documented)
-        env:
-          BASE_URL: https://www.quantiumcore.com
-          TEST_EMAIL: ${{ secrets.QA_TEST_EMAIL }}
-          TEST_PASSWORD: ${{ secrets.QA_TEST_PASSWORD }}
-        run: npx playwright test tests/e2e/bugs --reporter=list,json
-        continue-on-error: true  # Known bugs — failure is expected; logged not blocking
-
-      - name: Upload Playwright report
+      - name: Upload Playwright report artifact
         uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -66,15 +50,105 @@ jobs:
           path: playwright-report/
           retention-days: 7
 
-      - name: Upload test results JSON
+      - name: Upload E2E results JSON
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: test-results
+          name: e2e-results
           path: test-results.json
           retention-days: 7
 
-  # ── Job 2: AI PR Review ──────────────────────────────────────
+  # ── Job 2: Playwright API Tests ───────────────────────────────
+  api-tests:
+    name: API Tests (Playwright)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run API tests
+        env:
+          BASE_URL: https://www.quantiumcore.com
+          TEST_EMAIL: ${{ secrets.QA_TEST_EMAIL }}
+          TEST_PASSWORD: ${{ secrets.QA_TEST_PASSWORD }}
+        run: npx playwright test tests/api --reporter=list,json
+        # API test failures block merge
+
+      - name: Upload API results JSON
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: api-results
+          path: test-results.json
+          retention-days: 7
+
+  # ── Job 3: Bug Reproduction Tests ─────────────────────────────
+  bug-repro-tests:
+    name: Bug Reproduction Tests (known failures)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run bug reproduction tests
+        env:
+          BASE_URL: https://www.quantiumcore.com
+          TEST_EMAIL: ${{ secrets.QA_TEST_EMAIL }}
+          TEST_PASSWORD: ${{ secrets.QA_TEST_PASSWORD }}
+        run: npx playwright test tests/e2e/bugs --reporter=list,json
+        continue-on-error: true  # Known bugs — failure expected; logged not blocking
+
+  # ── Job 4: Publish Playwright Report to GitHub Pages ──────────
+  publish-report:
+    name: Publish Playwright Report (GitHub Pages)
+    runs-on: ubuntu-latest
+    needs: [e2e-tests]
+    if: always() && (github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch')
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Download Playwright report artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+
+      - name: Upload to GitHub Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: playwright-report/
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+  # ── Job 5: AI PR Review ──────────────────────────────────────
   ai-pr-review:
     name: AI QA Review (OpenAI gpt-4o)
     runs-on: ubuntu-latest
@@ -104,7 +178,7 @@ jobs:
           GITHUB_BASE_REF: ${{ github.base_ref }}
         run: python ai-tools/mr_review_bot.py
 
-  # ── Job 3: k6 Load Tests (manual only, NEVER auto on PR) ─────
+  # ── Job 6: k6 Load Tests (manual only, NEVER auto on PR) ─────
   k6-load-test:
     name: k6 Load Tests (manual trigger only)
     runs-on: ubuntu-latest
