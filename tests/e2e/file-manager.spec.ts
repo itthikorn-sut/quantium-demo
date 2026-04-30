@@ -10,9 +10,9 @@ test.describe('File Manager', () => {
   });
 
   // ── Page Structure ─────────────────────────────────────────
-  test('FILE-HAPPY-001 — file manager page renders heading', async () => {
+  test('FILE-HAPPY-001 — file manager page renders heading', async ({ page }) => {
     // Check if the page has loaded successfully by verifying text content
-    const pageText = await fileManagerPage.page.locator('body').innerText();
+    const pageText = await page.locator('body').innerText();
     expect(pageText.toLowerCase()).toMatch(/file manager|document|fund vehicle/i);
   });
 

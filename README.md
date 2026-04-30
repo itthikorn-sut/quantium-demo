@@ -170,8 +170,8 @@
 | Module | Spec File | Focus |
 |---|---|---|
 | Authentication | `auth.spec.ts` | Login, empty submit, invalid credentials, password masking |
-| Dashboard — Single fund | `dashboard.spec.ts` | KPIs, fund context, period, charts, portfolio table, API non-500 |
-| Dashboard — All master funds + custom | `dashboard-all.spec.ts` | /allmasterfunds, CFO/VP/MB custom dashboards — happy/edge/negative |
+| Dashboard — Single fund | `dashboard.spec.ts` | Deep component coverage: KPIs (monetary/percentage regex), lazy-loaded charts, table validations, no strict-mode warnings |
+| Dashboard — All master funds + custom | `dashboard-all.spec.ts` | Deep coverage for `/allmasterfunds` and custom dashboards (CFO/VP/MB), dropdown toggles, zoom controls, export buttons |
 | Capital Calls | `capital-call.spec.ts` | List, filters, folder view, new transaction paths |
 | Commitment | `transactions-commitment.spec.ts` | List, columns, New/Transfer dropdown, filter |
 | Fund Operation / Fund Investment / SPV Transfer | `transactions-other.spec.ts` | List, column headers, filter, negative no-crash |
@@ -383,33 +383,3 @@ QA is working when:
 - Product owners can see which release risks are **covered**
 - Known production bugs become **regression tests**
 - The team can explain **why a release is safe** — not just that tests passed
-
----
-
-## Interview Talking Points
-
-### Opening
-
-> "I explored Quantium CORE as a private equity fund management platform, not just as a generic web app. The highest-risk areas are financial correctness, permission clarity, reporting trust, and regression confidence. I found four concrete live issues and built a test harness that turns those findings into repeatable QA assets."
-
-### Demo Flow
-
-1. **Feature audit** (`01-feature-audit.md`) — show I learned the product surface and found real bugs
-2. **Playwright report** (GitHub Pages link) — show coverage of critical workflows
-3. **Bug repro specs** (`tests/e2e/bugs/`) — show how live findings become regression anchors
-4. **CI pipeline** (GitHub Actions) — show the full QA pipeline: E2E + API + AI review + k6
-5. **AI tools** — show `ticket_to_testcases.py` converting a ticket to Gherkin in real time
-
-### Key Message
-
-> "The point is not to claim full coverage on day one. The point is to show a QA lead operating model: **discover → prioritize → automate → communicate → improve the release signal.**"
-
-### Questions to Ask Quantium
-
-1. What are the highest-risk workflows before each release?
-2. Which defects have escaped to production most often in the last six months?
-3. How are financial calculations and reports currently validated?
-4. Is there a staging environment with stable anonymized data?
-5. How is RBAC tested across roles and fund structures?
-6. What parts of regression are currently manual, automated, or unowned?
-7. What release signals would engineering trust enough to move faster?
