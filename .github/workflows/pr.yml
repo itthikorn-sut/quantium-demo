@@ -1,0 +1,35 @@
+name: PR Gate
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ── AI PR Review ─────────────────────────────────────────────
+  ai-pr-review:
+    name: AI QA Review (OpenAI gpt-4o)
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write  # post PR comment
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # full history needed for git diff
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install openai
+
+      - name: Run AI QA review and post PR comment
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_EVENT_NUMBER: ${{ github.event.number }}
+          GITHUB_BASE_REF: ${{ github.base_ref }}
+        run: python ai-tools/mr_review_bot.py
