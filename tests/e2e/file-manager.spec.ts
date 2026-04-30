@@ -42,3 +42,39 @@ test.describe('File Manager', () => {
     await expect(fileManagerPage.serverErrorText()).not.toBeVisible({ timeout: 15000 });
   });
 });
+
+const DOCUMENT_SUBROUTES = ['investor', 'asset', 'spv', 'other'] as const;
+
+test.describe('Document sub-sections', () => {
+  for (const sub of DOCUMENT_SUBROUTES) {
+    test.describe(`/documents/${sub}`, () => {
+      let fileManagerPage: FileManagerPage;
+
+      test.beforeEach(async ({ page }) => {
+        fileManagerPage = new FileManagerPage(page);
+        await fileManagerPage.goto(sub);
+      });
+
+      // ── Happy ────────────────────────────────────────────────
+      test(`FILE-${sub.toUpperCase()}-HAPPY-001 — page renders without blank body`, async ({ page }) => {
+        const text = await page.locator('body').innerText();
+        expect(text.trim().length).toBeGreaterThan(10);
+      });
+
+      test(`FILE-${sub.toUpperCase()}-HAPPY-002 — page has interactive controls`, async () => {
+        const controls = fileManagerPage.interactiveControls();
+        expect(await controls.count()).toBeGreaterThanOrEqual(2);
+      });
+
+      // ── Edge ──────────────────────────────────────────────────
+      test(`FILE-${sub.toUpperCase()}-EDGE-001 — document area or content section renders`, async () => {
+        await expect(fileManagerPage.fileListingArea()).toBeVisible({ timeout: 15000 });
+      });
+
+      // ── Negative ────────────────────────────────────────────
+      test(`FILE-${sub.toUpperCase()}-NEGATIVE-001 — page does not show server error`, async () => {
+        await expect(fileManagerPage.serverErrorText()).not.toBeVisible({ timeout: 15000 });
+      });
+    });
+  }
+});

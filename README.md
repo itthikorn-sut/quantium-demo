@@ -1,12 +1,5 @@
 # Quantium CORE — QA Lead Interview Showcase
 
-> **Interview date:** 2026-04-30  
-> **Candidate:** Itthikorn Sutthirak  
-> **Role:** QA Lead  
-> **Repo:** [itthikorn-sut/quantium-demo](https://github.com/itthikorn-sut/quantium-demo)  
-> **Live report:** [itthikorn-sut.github.io/quantium-demo](https://itthikorn-sut.github.io/quantium-demo/)
-
----
 
 ## Product Overview
 
@@ -22,25 +15,92 @@
 
 ---
 
-## Page Routes (Confirmed Live)
+## Page Routes (Confirmed Live — 38 routes)
 
-| Route | Module | What It Does |
+> Explored live as `interviewguest@quantium.pe` on 2026-04-30. All routes verified via browser automation.
+
+**Product family** (visible in top bar): CORE · EDGE · SmartPage · PORTAL — Quantium is a multi-product suite.
+
+### Dashboard
+
+| Route | Label | What It Does |
 |---|---|---|
-| `/qfdashboard` | Dashboard | KPIs for selected fund: Total Invested, Available for Drawdown, Fund Gross IRR, Net IRR, TVPI |
-| `/capital` | Capital Calls | Capital call / distribution list — Filter, Folder View, New, Single transaction, Excel import |
-| `/investment` | Deal Transactions | Deal table with status counters, new/import actions |
+| `/allmasterfunds` | All master funds | Aggregated KPI view across all funds — currency selector, period picker, fund summary table |
+| `/qfdashboard` | Single fund | Per-fund KPIs: Total Invested, Available for Drawdown, Fund Gross IRR, Net IRR, TVPI; J Curve; portfolio summary table with 19 assets |
+| `/dashboard/61e130c5ce6deda422ff561c` | CFO Dashboard | Custom analytics dashboard |
+| `/dashboard/62c5406c2103caf15a54bd8d` | Single asset metrics dashboard | Custom analytics dashboard |
+| `/dashboard/669dda3cd226052a1ba8f616` | VP Test | Custom analytics dashboard |
+| `/dashboard/66d4b0d4c106e51ca349e25c` | MB TEST | Custom analytics dashboard |
+
+### Entities
+
+| Route | Label | What It Does |
+|---|---|---|
+| `/entitieschart` | Structure | Fund hierarchy chart + as-of date input |
+| `/fundvehicle` | Fund vehicle | Fund vehicle list — Add button, table |
+| `/investor` | Investor | Investor list — Name, Group, Type, Investing Entity, Total Commitment, Paid-in Capital |
+| `/asset` | Asset | Asset list — Name, Legal name, Investing entities, Current investment cost, Ownership %, Latest valuation date |
+
+### Transactions
+
+| Route | Label | What It Does |
+|---|---|---|
+| `/commitment` | Commitment | Commitment list — Date, Type, Fund vehicle; New / Transfer of commitment / Excel import |
+| `/capital` | Capital call - distribution | Capital call list — Filter, Folder View, New, Single transaction, Excel import, Delete |
+| `/fund-operation` | Fund operation | Fund-level operations — Transaction date, Type, Subtype, Entity |
+| `/investment` | Deal | Deal transaction list — status counters, new/import |
+| `/fund-investment` | Fund investment | Fund-in-fund investments — Date, Investee fund, Fund vehicle, Type, Serial No., Commitment amount |
+| `/spv-transfer` | SPV transfer | SPV transfers — Transaction date, Entity, Type, Reference, Amount, Status |
+
+### Valuation
+
+| Route | Label | What It Does |
+|---|---|---|
 | `/valuation` | Valuation | FMV list — valuation date, deal, entity, instrument, remaining cost, previous FMV |
-| `/irr` | IRR Simulator | Fund vehicle + IRR type + as-of date → Generate |
-| `/waterfall` | Waterfall Simulator | Entity + allocation rule + investors + amount + date → Calculate + Export |
+
+### Toolkits
+
+| Route | Label | What It Does |
+|---|---|---|
+| `/management-fee` | Management fee calculator | Fee calculation tool |
+| `/irr` | IRR simulator | Fund vehicle + IRR type + as-of date → Generate; **BUG-005: ambiguous dropdown labels** |
+| `/waterfall` | Waterfall simulator | Entity + allocation rule + investors + amount + date → Calculate + Export |
+| `/search` → `/search/entity` | Advanced search | Entity / Transaction / Investor Allocation; search button disabled until criteria selected |
+
+### Reports
+
+| Route | Label | What It Does |
+|---|---|---|
 | `/all-reports/list` | Reports | List / Packages / History tabs |
-| `/trial-balance` | Accounting | Entity + accounting level + period → Generate + Export |
-| `/approval-accounting` | Accounting | Approval + Close Books tabs, journal filter |
-| `/investor` | Investor Entities | Investor list — Name, Group, Type, Investing Entity, Total Commitment, Paid-in Capital |
-| `/crm/entity` | CRM | Shows explicit **Unauthorized** page for guest role (correct RBAC) |
-| `/crm/contact` | CRM | Contacts list renders — but `crmcontactrole/list` returns `403` (bug) |
-| `/search/entity` | Search | Entity / Transaction / Investor Allocation search (disabled until criteria selected) |
-| `/entitieschart` | Structure Chart | Fund hierarchy chart + as-of date input |
-| `/file-manager` | File Manager | Document area + search |
+
+### Accounting
+
+| Route | Label | What It Does |
+|---|---|---|
+| `/chart-of-account` | Chart of account | Account code, Account Name, Category, Type, Subtype, YTD Balance |
+| `/banking` | Banking | Bank account list — Account, Account code, Account number, Latest balance |
+| `/journal` | Journal | Journal list — Journal date, Serial number, Transaction, Reference, Account code, Account name |
+| `/trial-balance` | Trial balance | Entity + accounting level + period → Generate + Export (Excel/Word/PDF) |
+| `/approval-accounting` | Approval | Approval + Close Books tabs, journal filter |
+
+### CRM
+
+| Route | Label | What It Does |
+|---|---|---|
+| `/crm/contact` | Contacts | Contact list — view/filter by title and entity; **BUG-001/004: 403 on crmcontactrole/list** |
+| `/crm/entity` | Entities | → **Unauthorized** page for guest (correct RBAC behavior) |
+| `/crm/contact-role` | Contact roles | Contact role management |
+| `/crm/approval` | Approval | → **Unauthorized** page for guest (correct RBAC behavior) |
+
+### File Manager / Documents
+
+| Route | Label | What It Does |
+|---|---|---|
+| `/documents/fund-vehicle` | Fund vehicle documents | Documents scoped to fund vehicles |
+| `/documents/investor` | Investor documents | Documents scoped to investors |
+| `/documents/asset` | Asset documents | Documents scoped to assets |
+| `/documents/spv` | SPV documents | Documents scoped to SPV entities |
+| `/documents/other` | Other documents | Miscellaneous documents |
 
 ---
 
@@ -105,26 +165,31 @@
 
 ## Test Coverage
 
-**104 Playwright tests across 21 spec files.**
+**~160 Playwright tests across 27 spec files — all 38 confirmed routes covered.**
 
-| Module | Tests | Focus |
+| Module | Spec File | Focus |
 |---|---|---|
-| Authentication | 4 | Login, empty submit, invalid credentials, password masking |
-| Dashboard | 10 | KPIs, fund context, period controls, charts, API non-500 |
-| Capital Calls | 8 | List, filters, new transaction paths, required-field validation |
-| Deal Transactions | 7 | Table, status counters, new/import paths, guest access safety |
-| Valuation | 6 | FMV columns, new valuation path, filters, crash safety |
-| IRR Simulator | 8 | Fund/type/date setup, generate behavior, negative no-crash |
-| Waterfall Simulator | 7 | Allocation rules, investor/date setup, export, negative amount |
-| Reports | 7 | List/Packages/History, report columns, empty-state safety |
-| Accounting | 8 | Trial balance, approval, close books, period/export |
-| Investor Entities | 8 | List/create, master data fields, bulk paths, validation |
-| Search | 7 | Entity/transaction/allocation routes, disabled guardrail |
-| CRM / RBAC | 7 | Contacts, explicit unauthorized state, contact-role bug repro |
-| Structure Chart | 5 | Hierarchy, financial labels, as-of date, crash safety |
-| File Manager | 4 | Document area, search, permission/crash safety |
-| API Contracts | 6 | Auth/unauth safe-failure contracts, server-error guards |
-| Bug Reproduction | 5 | BUG-001 through BUG-005 as regression anchors |
+| Authentication | `auth.spec.ts` | Login, empty submit, invalid credentials, password masking |
+| Dashboard — Single fund | `dashboard.spec.ts` | KPIs, fund context, period, charts, portfolio table, API non-500 |
+| Dashboard — All master funds + custom | `dashboard-all.spec.ts` | /allmasterfunds, CFO/VP/MB custom dashboards — happy/edge/negative |
+| Capital Calls | `capital-call.spec.ts` | List, filters, folder view, new transaction paths |
+| Commitment | `transactions-commitment.spec.ts` | List, columns, New/Transfer dropdown, filter |
+| Fund Operation / Fund Investment / SPV Transfer | `transactions-other.spec.ts` | List, column headers, filter, negative no-crash |
+| Deal Transactions | `deal-transactions.spec.ts` | Table, status counters, new/import paths |
+| Valuation | `valuation.spec.ts` | FMV columns, new valuation path, filters |
+| IRR Simulator | `toolkits-irr.spec.ts` | Fund/type/date setup, generate behavior |
+| Waterfall Simulator | `toolkits-waterfall.spec.ts` | Allocation rules, investor/date setup, export |
+| Management Fee Calculator | `toolkits-management-fee.spec.ts` | Page load, fund dropdown, calculate, export |
+| Reports | `reports.spec.ts` | List/Packages/History, report columns |
+| Accounting (Trial balance, Approval, Banking, Journal, Chart of Accounts) | `accounting.spec.ts` | Generate, export formats, period controls, column headers, no-crash |
+| Investor Entities | `entities-investor.spec.ts` | List, columns, create form, bulk path |
+| Asset + Fund Vehicle | `entities-investor.spec.ts` | Asset list, asset detail links, fund vehicle list |
+| Structure Chart | `structure.spec.ts` | Hierarchy, financial labels, as-of date |
+| Search | `search.spec.ts` | Entity/transaction/allocation routes, disabled guardrail |
+| CRM Contacts + RBAC | `crm-rbac.spec.ts` | Contacts, Unauthorized (entity + approval), Contact roles |
+| File Manager — all 5 sub-routes | `file-manager.spec.ts` | fund-vehicle, investor, asset, spv, other document sections |
+| API Contracts | `tests/api/` | Auth/unauth safe-failure, server-error guards |
+| Bug Reproduction | `tests/e2e/bugs/` | BUG-001 through BUG-005 as regression anchors |
 
 ### Test naming convention
 

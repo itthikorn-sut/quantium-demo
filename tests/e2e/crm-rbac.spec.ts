@@ -58,4 +58,42 @@ test.describe('CRM and RBAC', () => {
     await crmPage.goto('contact');
     await expect(crmPage.serverErrorText()).not.toBeVisible({ timeout: 15000 });
   });
+
+  // ── CRM Approval (Unauthorized for guest) ─────────────────
+  test('CRM-RBAC-001 — crm/approval shows Unauthorized for guest role', async () => {
+    await crmPage.goto('approval');
+    await expect(crmPage.unauthorizedHeading()).toBeVisible({ timeout: 15000 });
+  });
+
+  test('CRM-RBAC-002 — crm/approval shows administrator guidance text', async () => {
+    await crmPage.goto('approval');
+    await expect(crmPage.adminGuidanceText()).toBeVisible();
+  });
+
+  test('CRM-RBAC-003 — crm/approval is not a blank page', async ({ page }) => {
+    await crmPage.goto('approval');
+    const bodyText = await page.locator('body').innerText();
+    expect(bodyText.trim().length).toBeGreaterThan(10);
+  });
+
+  // ── CRM Contact Roles ──────────────────────────────────────
+  test('CRM-ROLE-001 — contact-role page renders', async ({ page }) => {
+    await crmPage.goto('contact-role');
+    await page.waitForLoadState('domcontentloaded');
+    const body = await page.locator('body').innerText();
+    expect(body.trim().length).toBeGreaterThan(10);
+  });
+
+  test('CRM-ROLE-002 — contact-role page does not show server error', async () => {
+    await crmPage.goto('contact-role');
+    await expect(crmPage.serverErrorText()).not.toBeVisible({ timeout: 15000 });
+  });
+
+  test('CRM-ROLE-003 — contact-role page shows heading or content (or Unauthorized for guest)', async ({ page }) => {
+    await crmPage.goto('contact-role');
+    await page.waitForLoadState('domcontentloaded');
+    const hasHeading = await page.getByRole('heading').count();
+    const hasContent = (await page.locator('body').innerText()).trim().length > 10;
+    expect(hasHeading + (hasContent ? 1 : 0)).toBeGreaterThanOrEqual(1);
+  });
 });

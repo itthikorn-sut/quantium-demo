@@ -106,4 +106,66 @@ test.describe('Accounting', () => {
     const interactiveElements = accountingPage.interactiveElements();
     expect(await interactiveElements.count()).toBeGreaterThanOrEqual(3);
   });
+
+  // ── Journal Column Headers ─────────────────────────────────
+  test('ACC-HAPPY-014 — journal list has expected column headers', async ({ page }) => {
+    await accountingPage.goto('journal');
+    await page.waitForSelector('th', { timeout: 15000 });
+    const texts = (await page.locator('th').allInnerTexts()).join(' ').toLowerCase();
+    expect(texts).toMatch(/journal date|date/);
+    expect(texts).toMatch(/serial number|serial/);
+    expect(texts).toMatch(/account/);
+  });
+
+  // ── Chart of Account ──────────────────────────────────────
+  test('ACC-HAPPY-015 — chart of account page renders heading', async () => {
+    await accountingPage.goto('chart-of-account');
+    await expect(accountingPage.heading(/chart of account/i)).toBeVisible({ timeout: 15000 });
+  });
+
+  test('ACC-HAPPY-016 — chart of account has data table', async () => {
+    await accountingPage.goto('chart-of-account');
+    const table = accountingPage.dataTable();
+    await expect(table).toBeVisible({ timeout: 15000 });
+  });
+
+  test('ACC-HAPPY-017 — chart of account table has expected columns', async ({ page }) => {
+    await accountingPage.goto('chart-of-account');
+    await page.waitForSelector('th', { timeout: 15000 });
+    const texts = (await page.locator('th').allInnerTexts()).join(' ').toLowerCase();
+    expect(texts).toMatch(/account code/);
+    expect(texts).toMatch(/account name/);
+    expect(texts).toMatch(/category|type/);
+  });
+
+  test('ACC-HAPPY-018 — chart of account has Add button', async ({ page }) => {
+    await accountingPage.goto('chart-of-account');
+    const addBtn = page.getByRole('button', { name: /add|new/i }).first();
+    await expect(addBtn).toBeVisible({ timeout: 15000 });
+  });
+
+  // ── Banking Column Headers ─────────────────────────────────
+  test('ACC-HAPPY-019 — banking list has expected column headers', async ({ page }) => {
+    await accountingPage.goto('banking');
+    await page.waitForSelector('th', { timeout: 15000 });
+    const texts = (await page.locator('th').allInnerTexts()).join(' ').toLowerCase();
+    expect(texts).toMatch(/account/);
+    expect(texts).toMatch(/account code|code/);
+  });
+
+  // ── Negative ───────────────────────────────────────────────
+  test('ACC-NEGATIVE-002 — chart of account does not show server error', async () => {
+    await accountingPage.goto('chart-of-account');
+    await expect(accountingPage.serverErrorText()).not.toBeVisible({ timeout: 15000 });
+  });
+
+  test('ACC-NEGATIVE-003 — journal does not show server error', async () => {
+    await accountingPage.goto('journal');
+    await expect(accountingPage.serverErrorText()).not.toBeVisible({ timeout: 15000 });
+  });
+
+  test('ACC-NEGATIVE-004 — banking does not show server error', async () => {
+    await accountingPage.goto('banking');
+    await expect(accountingPage.serverErrorText()).not.toBeVisible({ timeout: 15000 });
+  });
 });
